@@ -8,6 +8,7 @@ A Python CLI tool for automating drone footage workflows with Kdenlive.
 - **Convert** - Batch convert 60fps to 30fps with quality presets
 - **Proxy** - Generate lightweight editing proxies (540p/720p)
 - **Metadata** - Extract and catalog video metadata to JSON
+- **Catalog** - Browse, rate, tag, and classify your clips
 - **Thumbnails** - Generate thumbnails and contact sheets
 - **Extract** - Export clips from Kdenlive projects to B-roll folders
 - **Export** - Render projects with preset configurations
@@ -91,6 +92,95 @@ kdv meta --all
 kdv meta --all --output catalog.json
 ```
 
+### Catalog - Browse and Annotate Clips
+
+The catalog lets you organize your footage with ratings, tags, motion types, and vibes.
+
+#### View Catalog Summary
+
+```bash
+kdv catalog
+```
+
+Shows statistics: total clips, duration, how many are rated/tagged/classified.
+
+#### Quick-Tag Workflow (Recommended)
+
+The fastest way to annotate your clips:
+
+```bash
+kdv catalog --quick
+```
+
+This walks through each unrated clip and lets you annotate with single keystrokes:
+
+```
+(1/46) HOVER_X1PROMAX_0061.mp4
+  Duration: 1:03.96 | Size: 449.4 MB
+  > 4 i e +sunset
+  ✓ ★4 | PushIn | Epic | +sunset
+```
+
+**Quick-tag commands (combine them!):**
+
+| Key | Action | Key | Action |
+|-----|--------|-----|--------|
+| `1-5` | Rate 1-5 stars | `+word` | Add tag |
+| `a` | Ascending | `c` | Calm |
+| `d` | Descending | `e` | Epic |
+| `i` | PushIn | `n` | Energetic |
+| `u` | PullOut | `l` | Lonely |
+| `o` | Orbit | `m` | Mysterious |
+| `r` | Reveal | `g` | Nostalgic |
+| `t` | Rotation | `x` | Mark unusable |
+| `s` | Strafing | Enter | Skip clip |
+| `k` | Tracking | `q` | Quit |
+
+**Example inputs:**
+- `5 i e` → 5 stars, PushIn motion, Epic vibe
+- `3 d c +forest +morning` → 3 stars, Descending, Calm, tags: forest, morning
+- `x` → mark as unusable and move on
+
+#### Annotate Individual Clips
+
+```bash
+# Rate a clip (partial filename match works)
+kdv catalog 0065 --rate 5
+
+# Add tags
+kdv catalog 0065 -t sunset -t golden-hour
+
+# Set motion type
+kdv catalog 0065 --motion PushIn
+
+# Set vibe/mood
+kdv catalog 0065 --vibe Epic
+
+# Add notes
+kdv catalog 0065 --note "Great establishing shot"
+
+# Combine options
+kdv catalog 0065 --rate 4 -t hero --motion PushIn --vibe Epic
+```
+
+#### Batch Annotate Multiple Clips
+
+```bash
+# Tag all 30fps converted clips
+kdv catalog --batch 30fps -t converted
+
+# Rate all clips from a session
+kdv catalog --batch 007 --rate 3 --motion Orbit
+```
+
+#### Interactive Browser
+
+```bash
+kdv catalog --browse
+```
+
+Paginated view with editing support.
+
 ### Generate Thumbnails
 
 ```bash
@@ -119,6 +209,42 @@ kdv export Projects/MyProject.kdenlive
 
 # With specific preset
 kdv export Projects/MyProject.kdenlive --preset youtube-4k
+```
+
+## Typical Workflow
+
+Here's a recommended workflow for processing new drone footage:
+
+```bash
+# 1. Import footage from SD card
+kdv ingest /Volumes/HOVERAIR
+
+# 2. Extract metadata and generate thumbnails
+kdv meta --all
+kdv thumbs --all --contact-sheet
+
+# 3. Review and annotate your clips (the fun part!)
+kdv catalog --quick
+
+# 4. Convert good clips to 30fps for editing
+kdv convert --all
+
+# 5. Generate proxies for smooth editing (optional)
+kdv proxy --all
+
+# 6. Check your progress
+kdv status
+kdv catalog
+```
+
+After editing in Kdenlive:
+
+```bash
+# Extract B-roll clips from your project
+kdv extract Projects/MyProject.kdenlive --interactive
+
+# Export final video
+kdv export Projects/MyProject.kdenlive --preset youtube-1080
 ```
 
 ## Configuration
