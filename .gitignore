@@ -1,0 +1,51 @@
+# Large video files
+*.mp4
+*.mov
+*.mkv
+*.avi
+*.mxf
+*.webm
+
+# Kdenlive cache directories (numeric IDs)
+[0-9]*/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Proxies and thumbnails
+proxy/
+.thumbnails/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+*.egg
+
+# Raw footage directories (tracked via structure, not content)
+Raw_HoverAir_Vids/
+archive/
+TeamFunNYE/
+
+# BRoll video content (structure tracked, not files)
+BRoll/**/*.mp4
+BRoll/**/*.mov
+
+# Keep Kdenlive project files
+!Projects/**/*.kdenlive
+!Edits/**/*.kdenlive
+!TeamFunNYE/**/*.kdenlive
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

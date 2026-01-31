@@ -1,0 +1,92 @@
+# kdv - Kdenlive Video Workflow Configuration
+
+paths:
+  raw: Raw_HoverAir_Vids
+  broll: BRoll
+  proxy: proxy
+  archive: archive
+  thumbnails: .thumbnails
+  projects: Projects
+  edits: Edits
+
+# BRoll category structure
+broll_categories:
+  motion:
+    - Ascending
+    - Descending
+    - Orbits
+    - PullOuts
+    - PushIns
+    - Reveals
+    - Rotation
+    - Strafing
+    - Tracking
+  vibes:
+    - Calm
+    - Energetic
+    - Epic
+    - Lonely
+    - Mysterious
+    - Nostalgic
+
+# Frame rate conversion settings
+conversion:
+  target_fps: 30
+  quality: balanced  # fast | balanced | quality
+  # Quality presets map to CRF values:
+  #   fast: crf=23, preset=fast
+  #   balanced: crf=18, preset=medium
+  #   quality: crf=15, preset=slow
+
+# Proxy generation settings
+proxy:
+  resolution: 540     # 540 | 720 | 1080
+  crf: 28
+  preset: ultrafast
+
+# Thumbnail settings
+thumbnails:
+  timestamp: "00:00:03"   # Time offset for single thumbnail
+  format: jpg
+  quality: 85
+  contact_sheet:
+    enabled: true
+    cols: 4
+    rows: 4
+    width: 1920           # Total contact sheet width
+
+# Export presets
+export:
+  default_preset: youtube-1080
+  presets:
+    youtube-4k:
+      resolution: 3840x2160
+      fps: 30
+      video_bitrate: 45M
+      audio_bitrate: 384k
+      codec: libx264
+      preset: slow
+      profile: high
+    youtube-1080:
+      resolution: 1920x1080
+      fps: 30
+      video_bitrate: 12M
+      audio_bitrate: 256k
+      codec: libx264
+      preset: medium
+      profile: high
+    archive-master:
+      resolution: original
+      fps: original
+      video_bitrate: 80M
+      audio_bitrate: 384k
+      codec: libx264
+      preset: veryslow
+      profile: high
+
+# Ingest settings
+ingest:
+  naming_pattern: "HOVER_X1PROMAX_{seq:04d}"
+  copy_mode: copy    # copy | move
+  verify_checksum: true
+  create_dated_folders: false
