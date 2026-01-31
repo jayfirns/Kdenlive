@@ -109,8 +109,15 @@ Shows statistics: total clips, duration, how many are rated/tagged/classified.
 The fastest way to annotate your clips:
 
 ```bash
-kdv catalog --quick
+kdv catalog --quick              # Opens thumbnail for each clip
+kdv catalog --quick -p video     # Opens video in QuickTime
+kdv catalog --quick -p none      # No preview (text only)
 ```
+
+**Preview modes:**
+- `thumb` (default) - Opens the thumbnail image in Preview.app
+- `video` - Opens the actual video in QuickTime Player
+- `none` - No preview, just text info
 
 This walks through each unrated clip and lets you annotate with single keystrokes:
 

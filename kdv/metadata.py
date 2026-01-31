@@ -444,8 +444,39 @@ def browse_catalog(config: Config) -> None:
                 console.print("[red]Invalid clip number[/red]")
 
 
-def quick_tag_workflow(config: Config) -> None:
-    """Fast workflow for tagging multiple clips."""
+def open_preview(clip: dict, config: Config, preview_mode: str = "thumb") -> None:
+    """Open a preview of the clip (thumbnail or video)."""
+    import subprocess
+    import platform
+
+    if platform.system() != "Darwin":
+        # Only macOS supported for now
+        return
+
+    if preview_mode == "video":
+        # Open the actual video file
+        video_path = Path(clip.get("path", ""))
+        if video_path.exists():
+            subprocess.Popen(["open", str(video_path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    else:
+        # Open thumbnail
+        thumb_path = config.thumbnails_dir / f"{Path(clip['filename']).stem}.jpg"
+        if thumb_path.exists():
+            subprocess.Popen(["open", str(thumb_path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        else:
+            # Try contact sheet
+            contact_path = config.thumbnails_dir / f"{Path(clip['filename']).stem}_contact.jpg"
+            if contact_path.exists():
+                subprocess.Popen(["open", str(contact_path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def quick_tag_workflow(config: Config, preview: str = "thumb") -> None:
+    """Fast workflow for tagging multiple clips.
+
+    Args:
+        config: Configuration object
+        preview: Preview mode - "thumb" (thumbnail), "video" (open in player), or "none"
+    """
     catalog = load_catalog(config)
 
     if not catalog:
@@ -463,6 +494,10 @@ def quick_tag_workflow(config: Config) -> None:
 
     # Sort by filename
     clips_to_review.sort(key=lambda x: x.get("filename", ""))
+
+    # Show preview mode
+    if preview != "none":
+        console.print(f"[dim]Preview mode: {preview} (opens automatically)[/dim]")
 
     # Motion and vibe shortcuts
     motion_shortcuts = {
@@ -499,10 +534,9 @@ def quick_tag_workflow(config: Config) -> None:
         if current:
             console.print(f"  [dim]Current: {' | '.join(current)}[/dim]")
 
-        # Check if thumbnail exists
-        thumb_path = config.thumbnails_dir / f"{Path(clip['filename']).stem}.jpg"
-        if thumb_path.exists():
-            console.print(f"  [dim]Thumbnail: {thumb_path}[/dim]")
+        # Open preview automatically
+        if preview != "none":
+            open_preview(clip, config, preview)
 
         # Get input
         response = Prompt.ask("  [yellow]>[/yellow]", default="").strip().lower()

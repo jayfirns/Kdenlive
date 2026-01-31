@@ -251,6 +251,8 @@ def export_cmd(ctx, project, preset, output):
 @cli.command()
 @click.option("--browse", "-b", is_flag=True, help="Interactive catalog browser")
 @click.option("--quick", "-q", is_flag=True, help="Quick-tag workflow for fast annotation")
+@click.option("--preview", "-p", type=click.Choice(["thumb", "video", "none"]), default="thumb",
+              help="Preview mode: thumb (open thumbnail), video (open in player), none")
 @click.option("--batch", is_flag=True, help="Batch annotate clips matching pattern")
 @click.option("--tag", "-t", multiple=True, help="Add tag to a clip")
 @click.option("--rate", "-r", type=int, help="Rate a clip (1-5)")
@@ -259,13 +261,15 @@ def export_cmd(ctx, project, preset, output):
 @click.option("--note", "-n", type=str, help="Add a note")
 @click.argument("clip", required=False)
 @click.pass_context
-def catalog(ctx, browse, quick, batch, tag, rate, motion, vibe, note, clip):
+def catalog(ctx, browse, quick, preview, batch, tag, rate, motion, vibe, note, clip):
     """Browse and annotate your video catalog.
 
     Examples:
 
       kdv catalog                    # Show summary
-      kdv catalog --quick            # Fast annotation workflow
+      kdv catalog --quick            # Fast annotation (opens thumbnails)
+      kdv catalog --quick -p video   # Fast annotation (opens video player)
+      kdv catalog --quick -p none    # Fast annotation (no preview)
       kdv catalog --browse           # Interactive browser
       kdv catalog 0065 --rate 5      # Rate clip 5 stars
       kdv catalog 0065 -t hero -t sunset  # Add tags
@@ -282,7 +286,7 @@ def catalog(ctx, browse, quick, batch, tag, rate, motion, vibe, note, clip):
     config = ctx.obj["config"]
 
     if quick:
-        quick_tag_workflow(config)
+        quick_tag_workflow(config, preview=preview)
     elif browse:
         browse_catalog(config)
     elif batch and clip:
