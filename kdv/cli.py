@@ -248,5 +248,50 @@ def export_cmd(ctx, project, preset, output):
     export_project(project, preset=preset, output_path=output, config=config)
 
 
+@cli.command()
+@click.option("--browse", "-b", is_flag=True, help="Interactive catalog browser")
+@click.option("--tag", "-t", multiple=True, help="Add tag to a clip")
+@click.option("--rate", "-r", type=int, help="Rate a clip (1-5)")
+@click.option("--motion", "-m", type=str, help="Set motion type")
+@click.option("--vibe", "-v", type=str, help="Set vibe/mood")
+@click.option("--note", "-n", type=str, help="Add a note")
+@click.argument("clip", required=False)
+@click.pass_context
+def catalog(ctx, browse, tag, rate, motion, vibe, note, clip):
+    """Browse and annotate your video catalog.
+
+    Examples:
+
+      kdv catalog                    # Show summary
+      kdv catalog --browse           # Interactive browser
+      kdv catalog 0065 --rate 5      # Rate clip 5 stars
+      kdv catalog 0065 -t hero -t sunset  # Add tags
+      kdv catalog 0065 --motion PushIn    # Set motion type
+    """
+    from kdv.metadata import (
+        show_catalog_summary,
+        browse_catalog,
+        annotate_clip,
+    )
+    config = ctx.obj["config"]
+
+    if browse:
+        browse_catalog(config)
+    elif clip:
+        # Annotate a specific clip
+        annotate_clip(
+            clip,
+            tags=list(tag) if tag else None,
+            rating=rate,
+            motion_type=motion,
+            vibe=vibe,
+            notes=note,
+            config=config,
+        )
+    else:
+        # Show summary
+        show_catalog_summary(config)
+
+
 if __name__ == "__main__":
     cli()
