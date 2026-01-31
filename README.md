@@ -106,7 +106,14 @@ Shows statistics: total clips, duration, how many are rated/tagged/classified.
 
 #### Quick-Tag Workflow (Recommended)
 
-The fastest way to annotate your clips:
+The fastest way to annotate your clips. **Prerequisite:** Generate thumbnails first so you have something to preview:
+
+```bash
+# Generate thumbnails and contact sheets (do this first!)
+kdv thumbs --all --contact-sheet
+```
+
+Then start the quick-tag workflow:
 
 ```bash
 kdv catalog --quick              # Opens thumbnail for each clip
@@ -115,9 +122,9 @@ kdv catalog --quick -p none      # No preview (text only)
 ```
 
 **Preview modes:**
-- `thumb` (default) - Opens the thumbnail image in Preview.app
-- `video` - Opens the actual video in QuickTime Player
-- `none` - No preview, just text info
+- `thumb` (default) - Opens the thumbnail image in Preview.app. Contact sheets (4x4 grid of frames) are especially useful for seeing camera motion at a glance.
+- `video` - Opens the actual video file in QuickTime Player. Good for reviewing audio or subtle motion.
+- `none` - No preview, just text info in terminal.
 
 This walks through each unrated clip and lets you annotate with single keystrokes:
 
@@ -190,13 +197,21 @@ Paginated view with editing support.
 
 ### Generate Thumbnails
 
+Creates preview images for your clips, saved to `.thumbnails/` folder.
+
 ```bash
-# Generate thumbnails
+# Generate single thumbnail per clip (frame at 3 seconds)
 kdv thumbs --all
 
-# Include contact sheets
+# Include contact sheets (recommended!)
 kdv thumbs --all --contact-sheet
 ```
+
+**What gets generated:**
+- `HOVER_X1PROMAX_0065.jpg` - Single frame thumbnail
+- `HOVER_X1PROMAX_0065_contact.jpg` - 4x4 grid showing 16 frames throughout the clip
+
+Contact sheets are invaluable for the quick-tag workflow - you can see the entire clip's motion and content in one image without opening the video.
 
 ### Extract Clips from Project
 
