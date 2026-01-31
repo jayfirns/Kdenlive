@@ -444,6 +444,204 @@ def browse_catalog(config: Config) -> None:
                 console.print("[red]Invalid clip number[/red]")
 
 
+def quick_tag_workflow(config: Config) -> None:
+    """Fast workflow for tagging multiple clips."""
+    catalog = load_catalog(config)
+
+    if not catalog:
+        console.print("[yellow]Catalog is empty. Run 'kdv meta --all' first.[/yellow]")
+        return
+
+    # Filter to unrated clips first, then all
+    unrated = [c for c in catalog if not c.get("rating")]
+    if unrated:
+        console.print(f"[cyan]{len(unrated)} unrated clips[/cyan] out of {len(catalog)} total")
+        clips_to_review = unrated
+    else:
+        console.print(f"All {len(catalog)} clips are rated! Reviewing all.")
+        clips_to_review = catalog
+
+    # Sort by filename
+    clips_to_review.sort(key=lambda x: x.get("filename", ""))
+
+    # Motion and vibe shortcuts
+    motion_shortcuts = {
+        "a": "Ascending", "d": "Descending", "o": "Orbit",
+        "i": "PushIn", "u": "PullOut", "r": "Reveal",
+        "t": "Rotation", "s": "Strafing", "k": "Tracking",
+    }
+    vibe_shortcuts = {
+        "c": "Calm", "e": "Epic", "n": "Energetic",
+        "l": "Lonely", "m": "Mysterious", "g": "Nostalgic",
+    }
+
+    console.print("\n[bold]Quick Tag Mode[/bold]")
+    console.print("[dim]Rate 1-5 | Motion: (a)scend (d)escend (i)push-in (u)pull-out (o)rbit (r)eveal (t)rotation (s)trafe (k)track[/dim]")
+    console.print("[dim]Vibe: (c)alm (e)pic e(n)ergetic (l)onely (m)ysterious nostal(g)ic[/dim]")
+    console.print("[dim]Tags: +word adds tag | (x) unusable | (Enter) skip | (q) quit[/dim]\n")
+
+    reviewed = 0
+    for i, clip in enumerate(clips_to_review):
+        # Show clip info
+        console.print(f"\n[bold cyan]({i+1}/{len(clips_to_review)})[/bold cyan] {clip['filename']}")
+        console.print(f"  Duration: {clip.get('duration_human', '?')} | Size: {clip.get('size_human', '?')}")
+
+        # Show current annotations if any
+        current = []
+        if clip.get("rating"):
+            current.append(f"★{'★' * (clip['rating']-1)}")
+        if clip.get("motion_type"):
+            current.append(clip["motion_type"])
+        if clip.get("vibe"):
+            current.append(clip["vibe"])
+        if clip.get("tags"):
+            current.append(f"tags: {', '.join(clip['tags'])}")
+        if current:
+            console.print(f"  [dim]Current: {' | '.join(current)}[/dim]")
+
+        # Check if thumbnail exists
+        thumb_path = config.thumbnails_dir / f"{Path(clip['filename']).stem}.jpg"
+        if thumb_path.exists():
+            console.print(f"  [dim]Thumbnail: {thumb_path}[/dim]")
+
+        # Get input
+        response = Prompt.ask("  [yellow]>[/yellow]", default="").strip().lower()
+
+        if response == "q":
+            break
+
+        if not response:
+            continue
+
+        modified = False
+
+        # Parse response - can combine multiple commands
+        # e.g., "4 i e +sunset +golden-hour" = rate 4, PushIn, Epic, add tags
+        parts = response.split()
+        tags_to_add = []
+
+        for part in parts:
+            # Rating (1-5)
+            if part in "12345":
+                clip["rating"] = int(part)
+                modified = True
+
+            # Motion type
+            elif part in motion_shortcuts:
+                clip["motion_type"] = motion_shortcuts[part]
+                modified = True
+
+            # Vibe
+            elif part in vibe_shortcuts:
+                clip["vibe"] = vibe_shortcuts[part]
+                modified = True
+
+            # Tags (prefixed with +)
+            elif part.startswith("+"):
+                tag = part[1:]
+                if tag:
+                    tags_to_add.append(tag)
+
+            # Mark unusable
+            elif part == "x":
+                clip["usable"] = False
+                modified = True
+
+        # Add tags
+        if tags_to_add:
+            existing_tags = clip.get("tags", [])
+            clip["tags"] = list(set(existing_tags + tags_to_add))
+            modified = True
+
+        if modified:
+            reviewed += 1
+            # Show what was set
+            updates = []
+            if clip.get("rating"):
+                updates.append(f"★{clip['rating']}")
+            if clip.get("motion_type"):
+                updates.append(clip["motion_type"])
+            if clip.get("vibe"):
+                updates.append(clip["vibe"])
+            if tags_to_add:
+                updates.append(f"+{', +'.join(tags_to_add)}")
+            if clip.get("usable") is False:
+                updates.append("[red]unusable[/red]")
+            console.print(f"  [green]✓[/green] {' | '.join(updates)}")
+
+    # Save all changes
+    if reviewed > 0:
+        # Update the main catalog with changes
+        filename_to_clip = {c["filename"]: c for c in clips_to_review}
+        for i, c in enumerate(catalog):
+            if c["filename"] in filename_to_clip:
+                catalog[i] = filename_to_clip[c["filename"]]
+
+        save_catalog(catalog, config)
+        console.print(f"\n[green]Saved {reviewed} updates![/green]")
+    else:
+        console.print("\n[dim]No changes made.[/dim]")
+
+
+def batch_annotate(
+    pattern: str,
+    tags: Optional[list[str]] = None,
+    rating: Optional[int] = None,
+    motion_type: Optional[str] = None,
+    vibe: Optional[str] = None,
+    config: Optional[Config] = None,
+) -> int:
+    """Annotate multiple clips matching a pattern."""
+    if not config:
+        from kdv.config import get_config
+        config = get_config()
+
+    catalog = load_catalog(config)
+    pattern_lower = pattern.lower()
+
+    matched = []
+    for clip in catalog:
+        if pattern_lower in clip.get("filename", "").lower():
+            matched.append(clip)
+
+    if not matched:
+        console.print(f"[yellow]No clips matching '{pattern}'[/yellow]")
+        return 0
+
+    console.print(f"[cyan]Matching {len(matched)} clips:[/cyan]")
+    for clip in matched[:10]:
+        console.print(f"  • {clip['filename']}")
+    if len(matched) > 10:
+        console.print(f"  [dim]... and {len(matched) - 10} more[/dim]")
+
+    # Apply annotations
+    for clip in matched:
+        if tags:
+            existing = clip.get("tags", [])
+            clip["tags"] = list(set(existing + tags))
+        if rating:
+            clip["rating"] = rating
+        if motion_type:
+            clip["motion_type"] = motion_type
+        if vibe:
+            clip["vibe"] = vibe
+
+    save_catalog(catalog, config)
+
+    updates = []
+    if tags:
+        updates.append(f"tags: {', '.join(tags)}")
+    if rating:
+        updates.append(f"rating: {rating}")
+    if motion_type:
+        updates.append(f"motion: {motion_type}")
+    if vibe:
+        updates.append(f"vibe: {vibe}")
+
+    console.print(f"[green]Updated {len(matched)} clips:[/green] {' | '.join(updates)}")
+    return len(matched)
+
+
 def edit_clip_interactive(clip: dict, config: Config) -> None:
     """Interactively edit a clip's annotations."""
     console.print(f"\n[bold]Editing:[/bold] {clip['filename']}")

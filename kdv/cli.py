@@ -250,6 +250,8 @@ def export_cmd(ctx, project, preset, output):
 
 @cli.command()
 @click.option("--browse", "-b", is_flag=True, help="Interactive catalog browser")
+@click.option("--quick", "-q", is_flag=True, help="Quick-tag workflow for fast annotation")
+@click.option("--batch", is_flag=True, help="Batch annotate clips matching pattern")
 @click.option("--tag", "-t", multiple=True, help="Add tag to a clip")
 @click.option("--rate", "-r", type=int, help="Rate a clip (1-5)")
 @click.option("--motion", "-m", type=str, help="Set motion type")
@@ -257,26 +259,42 @@ def export_cmd(ctx, project, preset, output):
 @click.option("--note", "-n", type=str, help="Add a note")
 @click.argument("clip", required=False)
 @click.pass_context
-def catalog(ctx, browse, tag, rate, motion, vibe, note, clip):
+def catalog(ctx, browse, quick, batch, tag, rate, motion, vibe, note, clip):
     """Browse and annotate your video catalog.
 
     Examples:
 
       kdv catalog                    # Show summary
+      kdv catalog --quick            # Fast annotation workflow
       kdv catalog --browse           # Interactive browser
       kdv catalog 0065 --rate 5      # Rate clip 5 stars
       kdv catalog 0065 -t hero -t sunset  # Add tags
       kdv catalog 0065 --motion PushIn    # Set motion type
+      kdv catalog --batch 0060 -t sunset  # Tag all clips matching "0060"
     """
     from kdv.metadata import (
         show_catalog_summary,
         browse_catalog,
         annotate_clip,
+        quick_tag_workflow,
+        batch_annotate,
     )
     config = ctx.obj["config"]
 
-    if browse:
+    if quick:
+        quick_tag_workflow(config)
+    elif browse:
         browse_catalog(config)
+    elif batch and clip:
+        # Batch annotate clips matching pattern
+        batch_annotate(
+            clip,
+            tags=list(tag) if tag else None,
+            rating=rate,
+            motion_type=motion,
+            vibe=vibe,
+            config=config,
+        )
     elif clip:
         # Annotate a specific clip
         annotate_clip(
