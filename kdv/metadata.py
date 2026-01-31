@@ -470,6 +470,50 @@ def open_preview(clip: dict, config: Config, preview_mode: str = "thumb") -> Non
                 subprocess.Popen(["open", str(contact_path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
+def get_paired_filename(filename: str) -> Optional[str]:
+    """Get the paired filename (original <-> converted).
+
+    HOVER_X1PROMAX_0060.mp4 -> HOVER_X1PROMAX_0060-30fps.mp4
+    HOVER_X1PROMAX_0060-30fps.mp4 -> HOVER_X1PROMAX_0060.mp4
+    """
+    if "-30fps.mp4" in filename:
+        return filename.replace("-30fps.mp4", ".mp4")
+    elif filename.endswith(".mp4"):
+        return filename.replace(".mp4", "-30fps.mp4")
+    return None
+
+
+def propagate_annotations(clip: dict, catalog: list[dict]) -> Optional[dict]:
+    """Propagate annotations from a clip to its paired version.
+
+    Returns the paired clip if found and updated, None otherwise.
+    """
+    paired_name = get_paired_filename(clip.get("filename", ""))
+    if not paired_name:
+        return None
+
+    for paired_clip in catalog:
+        if paired_clip.get("filename") == paired_name:
+            # Copy annotation fields (but preserve filename, path, size, etc.)
+            if clip.get("rating"):
+                paired_clip["rating"] = clip["rating"]
+            if clip.get("motion_type"):
+                paired_clip["motion_type"] = clip["motion_type"]
+            if clip.get("vibe"):
+                paired_clip["vibe"] = clip["vibe"]
+            if clip.get("tags"):
+                # Merge tags, keeping any existing ones
+                existing = set(paired_clip.get("tags", []))
+                existing.update(clip.get("tags", []))
+                paired_clip["tags"] = list(existing)
+            if clip.get("usable") is False:
+                paired_clip["usable"] = False
+            if clip.get("notes"):
+                paired_clip["notes"] = clip["notes"]
+            return paired_clip
+    return None
+
+
 def quick_tag_workflow(config: Config, preview: str = "thumb") -> None:
     """Fast workflow for tagging multiple clips.
 
@@ -483,14 +527,19 @@ def quick_tag_workflow(config: Config, preview: str = "thumb") -> None:
         console.print("[yellow]Catalog is empty. Run 'kdv meta --all' first.[/yellow]")
         return
 
+    # Filter out converted versions (-30fps) - we only tag originals
+    # Annotations will auto-propagate to converted versions
+    originals_only = [c for c in catalog if "-30fps" not in c.get("filename", "")]
+
     # Filter to unrated clips first, then all
-    unrated = [c for c in catalog if not c.get("rating")]
+    unrated = [c for c in originals_only if not c.get("rating")]
     if unrated:
-        console.print(f"[cyan]{len(unrated)} unrated clips[/cyan] out of {len(catalog)} total")
+        console.print(f"[cyan]{len(unrated)} unrated clips[/cyan] out of {len(originals_only)} originals")
+        console.print(f"[dim](skipping {len(catalog) - len(originals_only)} converted versions - tags auto-propagate)[/dim]")
         clips_to_review = unrated
     else:
-        console.print(f"All {len(catalog)} clips are rated! Reviewing all.")
-        clips_to_review = catalog
+        console.print(f"All {len(originals_only)} original clips are rated! Reviewing all.")
+        clips_to_review = originals_only
 
     # Sort by filename
     clips_to_review.sort(key=lambda x: x.get("filename", ""))
@@ -499,20 +548,40 @@ def quick_tag_workflow(config: Config, preview: str = "thumb") -> None:
     if preview != "none":
         console.print(f"[dim]Preview mode: {preview} (opens automatically)[/dim]")
 
-    # Motion and vibe shortcuts
-    motion_shortcuts = {
-        "a": "Ascending", "d": "Descending", "o": "Orbit",
-        "i": "PushIn", "u": "PullOut", "r": "Reveal",
-        "t": "Rotation", "s": "Strafing", "k": "Tracking",
-    }
-    vibe_shortcuts = {
-        "c": "Calm", "e": "Epic", "n": "Energetic",
-        "l": "Lonely", "m": "Mysterious", "g": "Nostalgic",
-    }
+    # Collect and display existing tags for consistency
+    all_tags = {}
+    for clip in catalog:
+        for tag in clip.get("tags", []):
+            if tag != "converted":  # Skip the auto-tag
+                all_tags[tag] = all_tags.get(tag, 0) + 1
+
+    if all_tags:
+        console.print("\n[bold]Your Tags[/bold] [dim](use +tagname to add)[/dim]")
+        # Sort by count descending, then alphabetically
+        sorted_tags = sorted(all_tags.items(), key=lambda x: (-x[1], x[0]))
+        # Display in columns
+        tag_strs = [f"[cyan]+{tag}[/cyan]({count})" for tag, count in sorted_tags]
+        # Wrap at ~80 chars
+        line = "  "
+        for ts in tag_strs:
+            if len(line) + len(ts) > 80:
+                console.print(line)
+                line = "  "
+            line += ts + "  "
+        if line.strip():
+            console.print(line)
+
+    # Load motion and vibe shortcuts from config
+    motion_shortcuts = config.get_motions()
+    vibe_shortcuts = config.get_vibes()
+
+    # Build dynamic help text
+    motion_help = " ".join(f"({k}){v.lower().replace(k, '', 1)[:6]}" for k, v in sorted(motion_shortcuts.items()))
+    vibe_help = " ".join(f"({k}){v.lower().replace(k, '', 1)[:6]}" for k, v in sorted(vibe_shortcuts.items()))
 
     console.print("\n[bold]Quick Tag Mode[/bold]")
-    console.print("[dim]Rate 1-5 | Motion: (a)scend (d)escend (i)push-in (u)pull-out (o)rbit (r)eveal (t)rotation (s)trafe (k)track[/dim]")
-    console.print("[dim]Vibe: (c)alm (e)pic e(n)ergetic (l)onely (m)ysterious nostal(g)ic[/dim]")
+    console.print(f"[dim]Rate 1-5 | Motion: {motion_help}[/dim]")
+    console.print(f"[dim]Vibe: {vibe_help}[/dim]")
     console.print("[dim]Tags: +word adds tag | (x) unusable | (Enter) skip | (q) quit[/dim]\n")
 
     reviewed = 0
@@ -603,16 +672,21 @@ def quick_tag_workflow(config: Config, preview: str = "thumb") -> None:
                 updates.append("[red]unusable[/red]")
             console.print(f"  [green]✓[/green] {' | '.join(updates)}")
 
-    # Save all changes
-    if reviewed > 0:
-        # Update the main catalog with changes
-        filename_to_clip = {c["filename"]: c for c in clips_to_review}
-        for i, c in enumerate(catalog):
-            if c["filename"] in filename_to_clip:
-                catalog[i] = filename_to_clip[c["filename"]]
+            # Save immediately after each clip (so Ctrl+C doesn't lose work)
+            for idx, c in enumerate(catalog):
+                if c["filename"] == clip["filename"]:
+                    catalog[idx] = clip
+                    break
 
-        save_catalog(catalog, config)
-        console.print(f"\n[green]Saved {reviewed} updates![/green]")
+            # Auto-propagate annotations to paired version (original <-> 30fps)
+            paired = propagate_annotations(clip, catalog)
+            if paired:
+                console.print(f"  [dim]→ synced to {paired['filename']}[/dim]")
+
+            save_catalog(catalog, config)
+
+    if reviewed > 0:
+        console.print(f"\n[green]Done! Saved {reviewed} clips.[/green]")
     else:
         console.print("\n[dim]No changes made.[/dim]")
 

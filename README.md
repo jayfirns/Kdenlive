@@ -195,6 +195,48 @@ kdv catalog --browse
 
 Paginated view with editing support.
 
+#### Customize Vibes & Motions
+
+The quick-tag shortcuts are fully customizable. View and modify the schema:
+
+```bash
+# View current schema
+kdv catalog --schema
+
+# Add a new vibe with shortcut
+kdv catalog --add-vibe "p:Playful"
+kdv catalog --add-vibe "w:Whimsical"
+
+# Add a new motion type
+kdv catalog --add-motion "h:Hover"
+
+# Remove a vibe or motion
+kdv catalog --remove-vibe l
+kdv catalog --remove-motion o
+```
+
+The schema is stored in `config/kdv.yaml` under the `catalog:` section. You can also edit it directly:
+
+```yaml
+catalog:
+  vibes:
+    c: Calm
+    e: Epic
+    p: Playful    # your custom vibe
+  motions:
+    a: Ascending
+    i: PushIn
+    h: Hover      # your custom motion
+```
+
+#### Smart Features
+
+**Auto-sync to converted versions:** When you tag an original file (e.g., `0065.mp4`), annotations automatically propagate to its converted version (`0065-30fps.mp4`). You only need to tag originals.
+
+**Incremental saves:** Tags save immediately after each clip, so you can Ctrl+C anytime without losing work.
+
+**Tag consistency:** Quick-tag mode shows all your existing tags at startup, sorted by usage frequency, so you can stay consistent.
+
 ### Generate Thumbnails
 
 Creates preview images for your clips, saved to `.thumbnails/` folder.

@@ -1,5 +1,3 @@
-# kdv - Kdenlive Video Workflow Configuration
-
 paths:
   raw: Raw_HoverAir_Vids
   broll: BRoll
@@ -8,54 +6,40 @@ paths:
   thumbnails: .thumbnails
   projects: Projects
   edits: Edits
-
-# BRoll category structure
 broll_categories:
   motion:
-    - Ascending
-    - Descending
-    - Orbits
-    - PullOuts
-    - PushIns
-    - Reveals
-    - Rotation
-    - Strafing
-    - Tracking
+  - Ascending
+  - Descending
+  - Orbits
+  - PullOuts
+  - PushIns
+  - Reveals
+  - Rotation
+  - Strafing
+  - Tracking
   vibes:
-    - Calm
-    - Energetic
-    - Epic
-    - Lonely
-    - Mysterious
-    - Nostalgic
-
-# Frame rate conversion settings
+  - Calm
+  - Energetic
+  - Epic
+  - Lonely
+  - Mysterious
+  - Nostalgic
 conversion:
   target_fps: 30
-  quality: balanced  # fast | balanced | quality
-  # Quality presets map to CRF values:
-  #   fast: crf=23, preset=fast
-  #   balanced: crf=18, preset=medium
-  #   quality: crf=15, preset=slow
-
-# Proxy generation settings
+  quality: balanced
 proxy:
-  resolution: 540     # 540 | 720 | 1080
+  resolution: 540
   crf: 28
   preset: ultrafast
-
-# Thumbnail settings
 thumbnails:
-  timestamp: "00:00:03"   # Time offset for single thumbnail
+  timestamp: 00:00:03
   format: jpg
   quality: 85
   contact_sheet:
     enabled: true
     cols: 4
     rows: 4
-    width: 1920           # Total contact sheet width
-
-# Export presets
+    width: 1920
 export:
   default_preset: youtube-1080
   presets:
@@ -83,10 +67,26 @@ export:
       codec: libx264
       preset: veryslow
       profile: high
-
-# Ingest settings
 ingest:
-  naming_pattern: "HOVER_X1PROMAX_{seq:04d}"
-  copy_mode: copy    # copy | move
+  naming_pattern: HOVER_X1PROMAX_{seq:04d}
+  copy_mode: copy
   verify_checksum: true
   create_dated_folders: false
+catalog:
+  vibes:
+    c: Calm
+    e: Epic
+    n: Energetic
+    l: Lonely
+    m: Mysterious
+    g: Nostalgic
+  motions:
+    a: Ascending
+    d: Descending
+    i: PushIn
+    u: PullOut
+    o: Orbit
+    r: Reveal
+    t: Rotation
+    s: Strafing
+    k: Tracking

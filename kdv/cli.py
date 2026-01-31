@@ -259,9 +259,15 @@ def export_cmd(ctx, project, preset, output):
 @click.option("--motion", "-m", type=str, help="Set motion type")
 @click.option("--vibe", "-v", type=str, help="Set vibe/mood")
 @click.option("--note", "-n", type=str, help="Add a note")
+@click.option("--schema", is_flag=True, help="Show/manage vibes and motions schema")
+@click.option("--add-vibe", type=str, help="Add a vibe (format: 'shortcut:Name', e.g., 'p:Playful')")
+@click.option("--add-motion", type=str, help="Add a motion (format: 'shortcut:Name', e.g., 'h:Hover')")
+@click.option("--remove-vibe", type=str, help="Remove a vibe by shortcut (e.g., 'l')")
+@click.option("--remove-motion", type=str, help="Remove a motion by shortcut (e.g., 'o')")
 @click.argument("clip", required=False)
 @click.pass_context
-def catalog(ctx, browse, quick, preview, batch, tag, rate, motion, vibe, note, clip):
+def catalog(ctx, browse, quick, preview, batch, tag, rate, motion, vibe, note,
+            schema, add_vibe, add_motion, remove_vibe, remove_motion, clip):
     """Browse and annotate your video catalog.
 
     Examples:
@@ -275,6 +281,13 @@ def catalog(ctx, browse, quick, preview, batch, tag, rate, motion, vibe, note, c
       kdv catalog 0065 -t hero -t sunset  # Add tags
       kdv catalog 0065 --motion PushIn    # Set motion type
       kdv catalog --batch 0060 -t sunset  # Tag all clips matching "0060"
+
+    Schema management:
+
+      kdv catalog --schema                    # Show current vibes/motions
+      kdv catalog --add-vibe "p:Playful"      # Add new vibe with shortcut 'p'
+      kdv catalog --add-motion "h:Hover"      # Add new motion with shortcut 'h'
+      kdv catalog --remove-vibe l             # Remove vibe with shortcut 'l'
     """
     from kdv.metadata import (
         show_catalog_summary,
@@ -284,6 +297,48 @@ def catalog(ctx, browse, quick, preview, batch, tag, rate, motion, vibe, note, c
         batch_annotate,
     )
     config = ctx.obj["config"]
+
+    # Schema management
+    if schema or add_vibe or add_motion or remove_vibe or remove_motion:
+        if add_vibe:
+            if ":" not in add_vibe:
+                console.print("[red]Error:[/red] Use format 'shortcut:Name', e.g., 'p:Playful'")
+                return
+            shortcut, name = add_vibe.split(":", 1)
+            config.add_vibe(shortcut.strip(), name.strip())
+            console.print(f"[green]Added vibe:[/green] ({shortcut}) {name}")
+
+        if add_motion:
+            if ":" not in add_motion:
+                console.print("[red]Error:[/red] Use format 'shortcut:Name', e.g., 'h:Hover'")
+                return
+            shortcut, name = add_motion.split(":", 1)
+            config.add_motion(shortcut.strip(), name.strip())
+            console.print(f"[green]Added motion:[/green] ({shortcut}) {name}")
+
+        if remove_vibe:
+            if config.remove_vibe(remove_vibe):
+                console.print(f"[green]Removed vibe:[/green] ({remove_vibe})")
+            else:
+                console.print(f"[yellow]Vibe not found:[/yellow] ({remove_vibe})")
+
+        if remove_motion:
+            if config.remove_motion(remove_motion):
+                console.print(f"[green]Removed motion:[/green] ({remove_motion})")
+            else:
+                console.print(f"[yellow]Motion not found:[/yellow] ({remove_motion})")
+
+        # Always show schema after changes or if --schema flag
+        if schema or add_vibe or add_motion or remove_vibe or remove_motion:
+            console.print("\n[bold]Current Schema[/bold]")
+            console.print("\n[cyan]Vibes:[/cyan]")
+            for shortcut, name in sorted(config.get_vibes().items()):
+                console.print(f"  ({shortcut}) {name}")
+            console.print("\n[cyan]Motions:[/cyan]")
+            for shortcut, name in sorted(config.get_motions().items()):
+                console.print(f"  ({shortcut}) {name}")
+            console.print(f"\n[dim]Config: {config.config_path}[/dim]")
+        return
 
     if quick:
         quick_tag_workflow(config, preview=preview)

@@ -165,6 +165,80 @@ class Config:
         }
         return presets.get(quality, presets["balanced"])
 
+    def get_vibes(self) -> dict:
+        """Get vibe shortcuts for catalog tagging."""
+        default_vibes = {
+            "c": "Calm", "e": "Epic", "n": "Energetic",
+            "l": "Lonely", "m": "Mysterious", "g": "Nostalgic",
+        }
+        return self.get("catalog.vibes", default_vibes)
+
+    def get_motions(self) -> dict:
+        """Get motion shortcuts for catalog tagging."""
+        default_motions = {
+            "a": "Ascending", "d": "Descending", "o": "Orbit",
+            "i": "PushIn", "u": "PullOut", "r": "Reveal",
+            "t": "Rotation", "s": "Strafing", "k": "Tracking",
+        }
+        return self.get("catalog.motions", default_motions)
+
+    def add_vibe(self, shortcut: str, name: str) -> None:
+        """Add a new vibe to the catalog schema."""
+        vibes = self.get_vibes()
+        vibes[shortcut.lower()] = name
+        self._update_catalog_schema(vibes=vibes)
+
+    def remove_vibe(self, shortcut: str) -> bool:
+        """Remove a vibe from the catalog schema."""
+        vibes = self.get_vibes()
+        if shortcut.lower() in vibes:
+            del vibes[shortcut.lower()]
+            self._update_catalog_schema(vibes=vibes)
+            return True
+        return False
+
+    def add_motion(self, shortcut: str, name: str) -> None:
+        """Add a new motion to the catalog schema."""
+        motions = self.get_motions()
+        motions[shortcut.lower()] = name
+        self._update_catalog_schema(motions=motions)
+
+    def remove_motion(self, shortcut: str) -> bool:
+        """Remove a motion from the catalog schema."""
+        motions = self.get_motions()
+        if shortcut.lower() in motions:
+            del motions[shortcut.lower()]
+            self._update_catalog_schema(motions=motions)
+            return True
+        return False
+
+    def _update_catalog_schema(self, vibes: dict = None, motions: dict = None) -> None:
+        """Update the catalog schema in the config file."""
+        # Load current config
+        if self.config_path.exists():
+            with open(self.config_path) as f:
+                config = yaml.safe_load(f) or {}
+        else:
+            config = {}
+
+        # Ensure catalog section exists
+        if "catalog" not in config:
+            config["catalog"] = {}
+
+        # Update vibes/motions
+        if vibes is not None:
+            config["catalog"]["vibes"] = vibes
+        if motions is not None:
+            config["catalog"]["motions"] = motions
+
+        # Write back
+        self.config_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(self.config_path, "w") as f:
+            yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+
+        # Reload internal config
+        self._config = self._load_config()
+
 
 # Global config instance
 _config: Optional[Config] = None
